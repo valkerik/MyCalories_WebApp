@@ -5,17 +5,15 @@ import ru.valkerik.calories.model.MealWithExcess;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static ru.valkerik.calories.util.TimeUtil.isBetweenHalfOpen;
 
 public class MealsUtil {
 
 
-    public static List<MealWithExcess> filteredByCycles(List<Meal> meals, LocalTime startTime, LocalTime endTime, int caloriesPerDay) {
+    public static List<MealWithExcess> filteredByCycles(Collection<Meal> meals, LocalTime startTime, LocalTime endTime, int caloriesPerDay) {
 
         final Map<LocalDate, Integer> caloriesSumByDate = new HashMap<>();
         meals.forEach(meal -> caloriesSumByDate.merge(meal.getDate(), meal.getCalories(), Integer::sum));
@@ -29,9 +27,20 @@ public class MealsUtil {
         return mealsTo;
     }
 
+    public static List<MealWithExcess> filteredByStreams(List<Meal> meals, LocalTime startTime, LocalTime endTime, int caloriesPerDay) {
+        Map<LocalDate, Integer> caloriesSumByDate = meals.stream()
+                .collect(Collectors.groupingBy(Meal::getDate, Collectors.summingInt(Meal::getCalories))
+                        //                      Collectors.toMap(Meal::getDate, Meal::getCalories, Integer::sum)
+                );
+
+        return meals.stream()
+                .filter(meal -> isBetweenHalfOpen(meal.getTime(), startTime, endTime))
+                .map(meal -> createTo(meal, caloriesSumByDate.get(meal.getDate()) > caloriesPerDay))
+                .collect(Collectors.toList());
+    }
+
     private static MealWithExcess createTo(Meal meal, boolean excess) {
-        MealWithExcess mealWithExcess = new MealWithExcess(meal.getDateTime(), meal.getDescription(), meal.getCalories(), excess);
-        mealWithExcess.setId(meal.getId());
+        MealWithExcess mealWithExcess = new MealWithExcess(meal.getId(), meal.getDateTime(), meal.getDescription(), meal.getCalories(), excess);
         return mealWithExcess;
     }
 }

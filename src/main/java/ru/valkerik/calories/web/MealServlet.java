@@ -1,10 +1,10 @@
 package ru.valkerik.calories.web;
 
 import org.slf4j.Logger;
-import ru.valkerik.calories.dao.MealDAO;
 import ru.valkerik.calories.model.Meal;
+import ru.valkerik.calories.repository.MealRepository;
+import ru.valkerik.calories.repository.MealRepositoryImpl;
 import ru.valkerik.calories.util.MealsUtil;
-import ru.valkerik.calories.util.TimeUtil;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -19,7 +19,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 public class MealServlet extends HttpServlet {
 
-    private static MealDAO mealDAO = new MealDAO();
+    private MealRepository mealRepository = new MealRepositoryImpl();
     private static final Logger log = getLogger(UserServlet.class);
 
     private static String INSERT_OR_EDIT = "/addEdit.jsp";
@@ -39,14 +39,14 @@ public class MealServlet extends HttpServlet {
         if (action.equalsIgnoreCase("delete")) {
             int mealId = Integer.parseInt(request.getParameter("id"));
 
-            mealDAO.deleteMeal(mealId);
+            mealRepository.delete(mealId);
             forward = LIST_MEALS;
-            request.setAttribute("mealsListExcess", MealsUtil.filteredByCycles(mealDAO.getAllMeals(), startTime, endTime, 2000));
+            request.setAttribute("mealsListExcess", MealsUtil.filteredByCycles(mealRepository.getAll(), startTime, endTime, 2000));
 
         } else if (action.equalsIgnoreCase("edit")) {
 
             int mealId = Integer.parseInt(request.getParameter("id"));
-            Meal meal = mealDAO.getMealById(mealId);
+            Meal meal = mealRepository.getById(mealId);
             request.setAttribute("meal", meal);
             request.getRequestDispatcher("/createUpdate.jsp").forward(request, response);
 
@@ -58,7 +58,7 @@ public class MealServlet extends HttpServlet {
 
         } else if (action.equalsIgnoreCase("meals")) {
             forward = LIST_MEALS;
-            request.setAttribute("mealsListExcess", MealsUtil.filteredByCycles(mealDAO.getAllMeals(), startTime, endTime, 2000));
+            request.setAttribute("mealsListExcess", MealsUtil.filteredByCycles(mealRepository.getAll(), startTime, endTime, 2000));
 
         } else {
             forward = INSERT_OR_EDIT;
@@ -69,17 +69,7 @@ public class MealServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        Meal meal = new Meal();
-        LocalDateTime localDateTime = TimeUtil.parseLocalDataTime(request.getParameter("dateTime"));
-        meal.setDateTime(localDateTime);
-        meal.setDescription(request.getParameter("description"));
-        meal.setCalories(Integer.parseInt(request.getParameter("calories")));
 
-
-        mealDAO.addMeal(meal);
-
-        request.setAttribute("mealsListExcess", MealsUtil.filteredByCycles(mealDAO.getAllMeals(), LocalTime.MIN,LocalTime.MAX, 2000));
-        request.getRequestDispatcher(LIST_MEALS).forward(request, response);
 
     }
 }
